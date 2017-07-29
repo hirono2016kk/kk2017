@@ -1,0 +1,53 @@
+GithubにSSH接続できないパターン
+接続先サーバに公開鍵を登録していない
+
+「鍵登録なんて忘れるわけないじゃん」と思うかもしれませんが、これで何度も苦しんでいる人を見かけたのでもう一度確認しましょう。
+Githubに繋ぐには公開鍵・秘密鍵を作成し、公開鍵をGithubに登録する必要があります。また、秘密鍵は自分のサーバに置く必要があります。
+また、鍵の作り方がわからない人は「ssh-keygen」で調べてみましょう。
+
+秘密鍵が読めてない
+
+Githubに公開鍵を登録したのはいいものの、SSH接続時に自サーバに置いた秘密鍵がうまく読めてないパターンがあります。
+SSHで接続する際にデフォルトで読みにいく秘密鍵のパスは「~/.ssh/id_rsa」「~/.ssh/id_dsa」「~/.ssh/identity」のいずれかです。それ以外のパスで置いても読み込まれません。
+また、パスがちゃんとしてるのに上手く読んでくれない場合は、「~/.ssh/config」の設定値を確認しましょう。もしかしたら変なパスを読みにいくような設定になっているのかもしれません。
+もしconfigファイルがない場合は以下のように作って明示的に設定してあげてもよいです。
+
+Host github
+User git
+Hostname github.com
+Port 22
+IdentityFile ~/.ssh/id_rsa # 秘密鍵のファイルパスを指定
+秘密鍵のパーミッションがおかしい
+
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@ WARNING: UNPROTECTED PRIVATE KEY FILE! @
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+SSH接続をしようとしてこんな派手なエラーメッセージが出たら、秘密鍵のパーミッションがおかしいです。パーミッションが777とかになっていませんか？0600でないと怒られます。秘密鍵ファイルのパーミッションを確認しましょう。
+
+ssh-add していない
+
+Permission denied (publickey).
+fatal: The remote end hung up unexpectedly
+鍵がちゃんとしていても、ssh-addを忘れていると上記のようなエラーが出ることがあります。Macなどではssh-addは不要ですが、CentOSでは必要です。まずは「ssh-add -l」して状態を確認。読み込んでほしい秘密鍵のパスがちゃんと出てこればOKです。出てこなければ、ssh-addしましょう。
+
+eval `ssh-agent`
+ssh-add ~/.ssh/id_rsa
+それでもダメなら
+
+ssh -vT git@github.com
+を打つとデバッグしてくれます。接続できない場合はどこかしらでエラーが出ると思うので内容を確認しましょう。
+Githubのドキュメント( https://help.github.com/articles/error-permission-denied-publickey )も参照。
+
+Githubにpush出来ないパターン
+GithubにSSH出来た後で git push に失敗するパターンがあります。
+
+httpsでcloneしてsshでpushしようとしたパターン
+
+以下のようなエラーが出た場合です。
+httpsでcloneしたリポジトリはそのままではsshでpush出来ません。
+
+fatal: remote error:
+You can't push to git://github.com/****/****.git
+Use https://github.com/****/****.git
+originを書き換えてあげる必要があります。
+参考： http://qiita.com/ryokbys/items/9ac2accdc3b907961526
